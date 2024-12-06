@@ -2,6 +2,7 @@ import pygame
 import random
 from animations import play_hint_animation
 from songs import get_random_song
+import webbrowser  # Import for opening the GitHub link
 
 # Initialize Pygame
 pygame.init()
@@ -15,7 +16,7 @@ feedback_text = ""                # Initialize feedback as an empty string
 # Screen settings
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Geometric Beat Animation with Menus")
+pygame.display.set_caption("Sonny - Singleplayer")
 
 # Colors
 BACKGROUND_COLOR = (10, 10, 30)
@@ -30,7 +31,7 @@ FPS = 60
 font = pygame.font.Font("fonts/PixelifySans-Regular.ttf", 36)
 
 # Button position and size
-button_rect = pygame.Rect(WIDTH - 150, HEIGHT - 70, 120, 50)
+button_rect = pygame.Rect(WIDTH - 150, HEIGHT - 130, 120, 50)
 
 # Game states
 START_MENU = "start_menu"
@@ -64,7 +65,7 @@ def end_screen():
         screen.fill(BACKGROUND_COLOR)
 
         # Display the final score
-        end_text = font.render("Game Over!", True, TEXT_COLOR)
+        end_text = font.render("Game Over! (QAQ)", True, TEXT_COLOR)
         score_text = font.render(f"Your Final Score: {total_score}", True, TEXT_COLOR)
 
         screen.blit(end_text, (WIDTH // 2 - end_text.get_width() // 2, HEIGHT // 3))
@@ -140,25 +141,34 @@ def update_particles():
             color = (*particle["color"], alpha)
             pygame.draw.circle(screen, color, particle["pos"], int(particle["radius"]))
 
-# Start menu
 def main_menu():
     global current_state, game_mode  # Declare game_mode as global
 
     running = True
     while running:
         screen.fill(BACKGROUND_COLOR)
-        title_text = font.render("Welcome to the Game!", True, TEXT_COLOR)
+
+        # Title (larger font size)
+        title_font = pygame.font.Font("fonts/PixelifySans-Regular.ttf", 48)  # Larger font size
+        title_text = title_font.render("Welcome to Sonny!", True, TEXT_COLOR)
         screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 4))
+
+        # Description (smaller font, yellow text)
+        description_font = pygame.font.Font("fonts/PixelifySans-Regular.ttf", 18)  # Smaller font size
+        description_text = description_font.render("Guess the songs and beat your best score!", True, (255, 223, 0))  # Yellow color
+        screen.blit(description_text, (WIDTH // 2 - description_text.get_width() // 2, HEIGHT // 4 + 45))  # Position below the title
 
         # Define buttons for modes
         button_width = 250
         button_height = 50
         speed_run_button = pygame.Rect(WIDTH // 2 - button_width // 2, HEIGHT // 2 - 70, button_width, button_height)
         regular_button = pygame.Rect(WIDTH // 2 - button_width // 2, HEIGHT // 2 + 10, button_width, button_height)
+        github_button = pygame.Rect(WIDTH // 2 - button_width // 2, HEIGHT // 2 + 90, button_width, button_height)  # GitHub button
 
         # Draw buttons
         draw_button(speed_run_button, "Speed Run")
         draw_button(regular_button, "Regular Mode")
+        draw_button(github_button, "GitHub")  # GitHub button
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -173,10 +183,11 @@ def main_menu():
                     game_mode = "regular"  # Set game_mode to "regular"
                     current_state = GAME
                     running = False
+                if github_button.collidepoint(event.pos):  # GitHub button logic
+                    webbrowser.open("https://github.com/M0bula")  # Open GitHub link
 
         pygame.display.flip()
         clock.tick(FPS)
-
 
 
 # Pause menu
@@ -208,7 +219,6 @@ def pause_menu():
         pygame.display.flip()
         clock.tick(FPS)
 
-
 def game():
     global current_state, total_score, game_mode, hint_count, hint_text  # Declare necessary global variables
 
@@ -224,9 +234,10 @@ def game():
     if game_mode == "speed_run":
         start_time = pygame.time.get_ticks()
         time_limit = 2 * 60 * 1000  # 2 minutes in milliseconds
-    
+
     running = True
     while running:
+        # **Render static background**
         screen.fill(BACKGROUND_COLOR)
 
         # Display lyrics
@@ -243,33 +254,36 @@ def game():
         input_rect = pygame.Rect(50, HEIGHT - 100, 500, 40)
         draw_input_box_with_snow(input_rect, player_answer)
 
-        # Display hint text above the answer box
+        # Display hint text above the input box
         if hint_text:
             hint_surface = font.render(hint_text, True, TEXT_COLOR)
-            screen.blit(hint_surface, (50, HEIGHT - 150))  # Adjust position as needed
+            # screen.blit(hint_surface, (50, HEIG   HT - 230))  # Position just above the input box
+            render_wrapped_text(hint_text, 50, HEIGHT - 230, font, TEXT_COLOR , 700)
+        # Draw the hint button
+        draw_pixelated_button(button_rect, "Hint")
 
         # Display timer for Speed Run mode
         if game_mode == "speed_run":
             elapsed_time = pygame.time.get_ticks() - start_time
             remaining_time = max(0, time_limit - elapsed_time)
-
             timer_surface = font.render(f"Time Left: {remaining_time // 1000}s", True, TEXT_COLOR)
-            screen.blit(timer_surface, (50, HEIGHT - 190))
-
+            screen.blit(timer_surface, (50, HEIGHT - 270))
             if remaining_time == 0:
                 feedback_text = f"Time's up! Final Score: {total_score}"
                 current_state = "end_screen"
                 running = False
-
         elif game_mode == "regular":
             question_surface = font.render(f"Question {question_count + 1}/10", True, TEXT_COLOR)
-            screen.blit(question_surface, (WIDTH - 200, 60))
-
-            if question_count == 10:
-                running = False
+            screen.blit(question_surface, (WIDTH - 500, 13))  # Adjust position as needed
+                # End the game after 10 questions
+            if question_count >= 10:
                 feedback_text = f"Game Over! Final Score: {total_score}"
                 current_state = "end_screen"
-
+                running = False
+        # Display feedback below the hint text
+        feedback_surface = font.render(feedback_text, True, TEXT_COLOR)
+        # screen.blit(feedback_surface, (50, HEIGHT - 240))
+        render_wrapped_text(feedback_text, 50, HEIGHT - 350, font, TEXT_COLOR , 700)
         # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -299,6 +313,7 @@ def game():
                         attempts += 1
                         if attempts == 2:
                             feedback_text = f"Wrong! The correct answer was: {current_song['name']}."
+
                             current_song = get_random_song()
                             question_count += 1
                             player_answer = ""
@@ -321,32 +336,13 @@ def game():
                         hint_text = f"Famous Line: {current_song['famous_line']}"  # Update hint text
                         hint_count += 1
 
-        # Draw hint button
-        draw_pixelated_button(button_rect, "Hint")
 
         # Update particles (if any)
         update_particles()
 
-        # Display feedback
-        feedback_surface = font.render(feedback_text, True, TEXT_COLOR)
-        screen.blit(feedback_surface, (50, HEIGHT - 200))  # Adjust position if needed
-
+        # Refresh screen
         pygame.display.flip()
         clock.tick(FPS)
-
-        # Draw hint button
-        draw_pixelated_button(pygame.Rect(WIDTH - 150, HEIGHT - 150, 100, 50), "Hint")
-
-        # Update particles (if any)
-        update_particles()
-
-        # Display feedback
-        feedback_surface = font.render(feedback_text, True, TEXT_COLOR)
-        screen.blit(feedback_surface, (50, HEIGHT - 150))
-
-        pygame.display.flip()
-        clock.tick(FPS)
-
 
 def draw_pixelated_button(rect, label_text):
     # Draw button background with Miku colors and Christmas style
