@@ -210,7 +210,7 @@ def pause_menu():
 
 
 def game():
-    global current_state, total_score, game_mode  # Declare game_mode as global
+    global current_state, total_score, game_mode, hint_count, hint_text  # Declare necessary global variables
 
     # Initialize variables
     total_score = 0
@@ -219,14 +219,16 @@ def game():
     hint_count = 0
     player_answer = ""
     current_song = get_random_song()
-    feedback_text = ""  # Initialize feedback_text to an empty string
+    feedback_text = ""
+    hint_text = ""  # Ensure hint_text starts empty
     if game_mode == "speed_run":
         start_time = pygame.time.get_ticks()
-        time_limit = 2 * 60 *1000  # 2 minutes in milliseconds
+        time_limit = 2 * 60 * 1000  # 2 minutes in milliseconds
     
     running = True
     while running:
         screen.fill(BACKGROUND_COLOR)
+
         # Display lyrics
         render_wrapped_text(
             f"Lyrics: {current_song['lyrics']}",
@@ -236,33 +238,33 @@ def game():
             color=TEXT_COLOR,
             max_width=700
         )
+
         # Input box
         input_rect = pygame.Rect(50, HEIGHT - 100, 500, 40)
         draw_input_box_with_snow(input_rect, player_answer)
+
+        # Display hint text above the answer box
+        if hint_text:
+            hint_surface = font.render(hint_text, True, TEXT_COLOR)
+            screen.blit(hint_surface, (50, HEIGHT - 150))  # Adjust position as needed
 
         # Display timer for Speed Run mode
         if game_mode == "speed_run":
             elapsed_time = pygame.time.get_ticks() - start_time
             remaining_time = max(0, time_limit - elapsed_time)
 
-            # Move the timer to the left and slightly down for better visibility
             timer_surface = font.render(f"Time Left: {remaining_time // 1000}s", True, TEXT_COLOR)
-            screen.blit(timer_surface, (50, HEIGHT - 190))  # Adjust position (x: 50, y: HEIGHT - 120)
+            screen.blit(timer_surface, (50, HEIGHT - 190))
 
-            # End the game when time runs out
             if remaining_time == 0:
                 feedback_text = f"Time's up! Final Score: {total_score}"
-                current_state = "end_screen"  # Transition to the end screen
+                current_state = "end_screen"
                 running = False
 
-
-
         elif game_mode == "regular":
-            # Display question count
             question_surface = font.render(f"Question {question_count + 1}/10", True, TEXT_COLOR)
             screen.blit(question_surface, (WIDTH - 200, 60))
 
-            # End the game after 10 questions
             if question_count == 10:
                 running = False
                 feedback_text = f"Game Over! Final Score: {total_score}"
@@ -280,30 +282,29 @@ def game():
                 elif event.key == pygame.K_BACKSPACE:
                     player_answer = player_answer[:-1]
                 elif event.key == pygame.K_RETURN:
-                    # Check answer
                     if player_answer.strip().lower() == current_song["name"].lower():
-                        # Correct answer logic
                         if attempts == 0:
-                            total_score += 100 - (15 * hint_count)  # First try
+                            total_score += 100 - (15 * hint_count)
                         elif attempts == 1:
-                            total_score += 60 - (15 * hint_count)  # Second try
-                        
+                            total_score += 60 - (15 * hint_count)
+
                         feedback_text = "Correct! Moving to next song."
-                        current_song = get_random_song()  # Load a new song
+                        current_song = get_random_song()
                         question_count += 1
                         player_answer = ""
                         attempts = 0
-                        hint_count = 0  # Reset hint count
+                        hint_count = 0
+                        hint_text = ""  # Reset hint text
                     else:
-                        # Incorrect answer logic
                         attempts += 1
-                        if attempts == 2:  # Two wrong attempts
+                        if attempts == 2:
                             feedback_text = f"Wrong! The correct answer was: {current_song['name']}."
-                            current_song = get_random_song()  # Load a new song
+                            current_song = get_random_song()
                             question_count += 1
                             player_answer = ""
                             attempts = 0
                             hint_count = 0
+                            hint_text = ""  # Reset hint text
                         else:
                             feedback_text = "Wrong! Try again."
                 else:
@@ -312,11 +313,26 @@ def game():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if button_rect.collidepoint(event.pos):  # Hint button logic
                     if hint_count == 0:
-                        hint_text = f"Artist: {current_song['artist']}"
+                        play_hint_animation(screen, f"Artist: {current_song['artist']}", BACKGROUND_COLOR)
+                        hint_text = f"Artist: {current_song['artist']}"  # Update hint text
                         hint_count += 1
                     elif hint_count == 1:
-                        hint_text = f"Famous Line: {current_song['famous_line']}"
+                        play_hint_animation(screen, f"Famous Line: {current_song['famous_line']}", BACKGROUND_COLOR)
+                        hint_text = f"Famous Line: {current_song['famous_line']}"  # Update hint text
                         hint_count += 1
+
+        # Draw hint button
+        draw_pixelated_button(button_rect, "Hint")
+
+        # Update particles (if any)
+        update_particles()
+
+        # Display feedback
+        feedback_surface = font.render(feedback_text, True, TEXT_COLOR)
+        screen.blit(feedback_surface, (50, HEIGHT - 200))  # Adjust position if needed
+
+        pygame.display.flip()
+        clock.tick(FPS)
 
         # Draw hint button
         draw_pixelated_button(pygame.Rect(WIDTH - 150, HEIGHT - 150, 100, 50), "Hint")

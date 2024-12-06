@@ -1,7 +1,7 @@
 import pygame
 import random
 
-def play_hint_animation(screen, artist, background_color):
+def play_hint_animation(screen, hint, background_color):
     for _ in range(30):  # Short animation loop
         screen.fill(background_color)
         for _ in range(10):
@@ -12,4 +12,6 @@ def play_hint_animation(screen, artist, background_color):
             pygame.draw.circle(screen, color, (x, y), size)
         pygame.display.flip()
         pygame.time.delay(50)  # Slower animation
-    return artist
+
+    # Return the hint text to be displayed after the animation
+    return hint
